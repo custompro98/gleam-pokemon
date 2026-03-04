@@ -1,16 +1,24 @@
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import lib/pokemon
 import prng/random
 
-type Battler {
-  Attacker(pokemon: pokemon.Pokemon)
-  Defender(pokemon: pokemon.Pokemon)
+pub type BattleError {
+  ParticipantLimitReached(pokemon.Pokemon)
+  NotEnoughParticipants
 }
 
-pub opaque type Turn {
+pub type StatusCondition {
+  Paralyzed
+}
+
+pub type Battler {
+  Attacker(pokemon: pokemon.Pokemon, status: Option(StatusCondition))
+  Defender(pokemon: pokemon.Pokemon, status: Option(StatusCondition))
+}
+
+pub type Turn {
   Turn(attacker: Battler, defender: Battler)
 }
 
@@ -24,11 +32,11 @@ pub type Battle {
 }
 
 fn new_attacker(pokemon: pokemon.Pokemon) -> Battler {
-  Attacker(pokemon)
+  Attacker(pokemon, status: None)
 }
 
 fn new_defender(pokemon: pokemon.Pokemon) -> Battler {
-  Defender(pokemon)
+  Defender(pokemon, status: None)
 }
 
 pub fn new() -> Battle {
@@ -40,18 +48,24 @@ fn new_turn(attacker attacker: Battler, defender defender: Battler) -> Turn {
   Turn(attacker, defender)
 }
 
-pub fn with_participant(battle: Battle, pokemon: pokemon.Pokemon) -> Battle {
+pub fn with_participant(
+  battle: Battle,
+  pokemon: pokemon.Pokemon,
+) -> Result(Battle, BattleError) {
   case list.length(battle.participants) {
-    2 -> panic as "Battles can only have two participants"
-    _ -> Battle(..battle, participants: [pokemon, ..battle.participants])
+    2 -> Error(ParticipantLimitReached(pokemon))
+    _ -> Ok(Battle(..battle, participants: [pokemon, ..battle.participants]))
   }
 }
 
-pub fn with_seed(battle: Battle, seed: random.Seed) -> Battle {
-  Battle(..battle, seed:)
+pub fn with_seed(
+  battle: Battle,
+  seed: random.Seed,
+) -> Result(Battle, BattleError) {
+  Ok(Battle(..battle, seed:))
 }
 
-pub fn start(battle: Battle) -> Nil {
+pub fn start(battle: Battle) -> Result(Battle, BattleError) {
   case battle.participants {
     [first, second] -> {
       let attacker = new_attacker(first)
@@ -62,14 +76,14 @@ pub fn start(battle: Battle) -> Nil {
 
       perform_turn(turn, battle)
     }
-    _ -> panic as "Battles must have exactly two participants"
+    _ -> Error(NotEnoughParticipants)
   }
 }
 
-fn perform_turn(turn: Turn, battle: Battle) -> Nil {
+fn perform_turn(turn: Turn, battle: Battle) -> Result(Battle, BattleError) {
   case battle.winner {
     Some(pokemon) -> {
-      io.println("The battle is over! The winner is " <> pokemon.name)
+      Ok(Battle(..battle, winner: Some(pokemon)))
     }
     None -> {
       // TODO: implement actual battle logic here, for now we'll just randomly decide if the attacker wins or not
@@ -77,10 +91,9 @@ fn perform_turn(turn: Turn, battle: Battle) -> Nil {
       let has_winner = rng == 1
       case has_winner {
         True -> {
-          let battle = Battle(..battle, winner: Some(turn.attacker.pokemon))
           perform_turn(
             new_turn(attacker: turn.defender, defender: turn.attacker),
-            battle,
+            Battle(..battle, winner: Some(turn.attacker.pokemon)),
           )
         }
         False -> {
