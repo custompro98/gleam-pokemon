@@ -1,5 +1,4 @@
 import gleam/list
-import gleam/float
 import lib/battle.{type Battle, Battle}
 import prng/random
 
@@ -38,18 +37,10 @@ pub fn calculate_number(number: Number, battle: Battle) -> #(Float, Battle) {
       #(dividend_value /. divisor_value, battle)
     }
     Between(min, max) -> {
-      let generator = random.float(0.0, 1.0)
+      let generator = random.float(min, max)
       let #(rng, new_seed) = random.step(generator, battle.seed)
 
-      let normalized_min = float.ceiling(min)
-      let normalized_max = float.floor(max)
-
-      let between =
-        float.floor(
-          rng *. { normalized_max -. normalized_min +. 1.0 } +. normalized_min,
-        )
-
-      #(between, Battle(..battle, seed: new_seed))
+      #(rng, Battle(..battle, seed: new_seed))
     }
     Weighted(weights) -> {
       case weights {
