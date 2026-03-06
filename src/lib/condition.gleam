@@ -1,9 +1,10 @@
-import lib/pokemon
 import gleam/list
 import gleam/option.{Some}
 import lib/battle
 import lib/element
 import lib/number
+import lib/pokemon
+import lib/target
 
 pub type ConditionError {
   BattleNotStarted
@@ -16,7 +17,7 @@ pub type Condition {
 
   Probability(chance: number.Number)
 
-  For(Target, BattlerCondition)
+  For(target.Target, BattlerCondition)
 }
 
 pub fn evaluate(
@@ -67,13 +68,15 @@ pub fn evaluate(
       Ok(#(ok, battle))
     }
     For(target, battler_condition) -> {
-      case get_target(battle, target) {
+      case target.get(battle, target) {
         Ok(target) ->
           case battler_resolver(target, battler_condition) {
             Ok(result) -> Ok(#(result, battle))
             Error(err) -> Error(err)
           }
-        Error(err) -> Error(err)
+        Error(err) -> case err {
+          target.BattleNotStarted -> Error(BattleNotStarted)
+        }
       }
     }
   }
@@ -101,25 +104,5 @@ pub fn battler_resolver(
   case condition {
     HasElement(element) -> Ok(pokemon.has_element(battler.pokemon, element))
     IsParalyzed -> Ok(battler.status == Some(battle.Paralyzed))
-  }
-}
-
-pub type Target {
-  Attacker
-  Defender
-}
-
-fn get_target(
-  battle: battle.Battle,
-  target: Target,
-) -> Result(battle.Battler, ConditionError) {
-  case battle.turns {
-    [turn, ..] -> {
-      case target {
-        Attacker -> Ok(turn.attacker)
-        Defender -> Ok(turn.defender)
-      }
-    }
-    [] -> Error(BattleNotStarted)
   }
 }
