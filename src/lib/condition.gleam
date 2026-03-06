@@ -8,46 +8,54 @@ pub type ConditionError {
   BattleNotStarted
 }
 
-pub type Condition(t) {
-  And(List(Condition(t)))
-  Or(List(Condition(t)))
-  Not(Condition(t))
+pub type Condition {
+  And(List(Condition))
+  Or(List(Condition))
+  Not(Condition)
 
   Probability(chance: number.Number)
 
-  /// This "escapes" to the specific domain types
-  Predicate(t)
+  For(Target, BattlerCondition)
 }
 
 pub fn evaluate(
   over battle: battle.Battle,
-  with condition: Condition(t),
-  using resolver: fn(battle.Battle, t) -> Bool,
-) -> #(Bool, battle.Battle) {
+  with condition: Condition,
+) -> Result(#(Bool, battle.Battle), ConditionError) {
   case condition {
     And(requirements) -> {
-      list.fold(requirements, #(True, battle), fn(acc, requirement) {
-        let #(ok, battle) = acc
-        case ok {
-          True -> evaluate(battle, requirement, resolver)
+      list.fold(requirements, Ok(#(True, battle)), fn(acc, requirement) {
+        case acc {
           // Short circuit if we know the result is False
-          False -> #(False, battle)
+          Ok(#(False, battle)) -> Ok(#(False, battle))
+          Ok(#(True, battle)) ->
+            case evaluate(battle, requirement) {
+              Ok(result) -> Ok(result)
+              Error(err) -> Error(err)
+            }
+          Error(err) -> Error(err)
         }
       })
     }
     Or(requirements) -> {
-      list.fold(requirements, #(False, battle), fn(acc, requirement) {
-        let #(ok, battle) = acc
-        case ok {
+      list.fold(requirements, Ok(#(False, battle)), fn(acc, requirement) {
+        case acc {
           // Short circuit if we know the result is True
-          True -> #(True, battle)
-          False -> evaluate(battle, requirement, resolver)
+          Ok(#(True, battle)) -> Ok(#(True, battle))
+          Ok(#(False, battle)) ->
+            case evaluate(battle, requirement) {
+              Ok(result) -> Ok(result)
+              Error(err) -> Error(err)
+            }
+          Error(err) -> Error(err)
         }
       })
     }
     Not(inner) -> {
-      let #(ok, battle) = evaluate(battle, inner, resolver)
-      #(!ok, battle)
+      case evaluate(battle, inner) {
+        Ok(#(ok, battle)) -> Ok(#(!ok, battle))
+        Error(err) -> Error(err)
+      }
     }
     Probability(chance) -> {
       let #(chance_value, battle) = number.calculate_number(chance, battle)
@@ -55,9 +63,18 @@ pub fn evaluate(
         number.calculate_number(number.Between(0.0, 1.0), battle)
 
       let ok = rng <. chance_value
-      #(ok, battle)
+      Ok(#(ok, battle))
     }
-    Predicate(predicate) -> #(resolver(battle, predicate), battle)
+    For(target, battler_condition) -> {
+      case get_target(battle, target) {
+        Ok(target) ->
+          case battler_resolver(target, battler_condition) {
+            Ok(result) -> Ok(#(result, battle))
+            Error(err) -> Error(err)
+          }
+        Error(err) -> Error(err)
+      }
+    }
   }
 }
 
@@ -103,24 +120,5 @@ fn get_target(
       }
     }
     [] -> Error(BattleNotStarted)
-  }
-}
-
-pub type BattleCondition {
-  For(Target, BattlerCondition)
-}
-
-pub fn battle_resolver(
-  battle: battle.Battle,
-  condition: BattleCondition,
-) -> Result(Bool, ConditionError) {
-  case condition {
-    For(target, battler_condition) -> {
-      let battler = get_target(battle, target)
-      case battler {
-        Ok(battler) -> battler_resolver(battler, battler_condition)
-        Error(err) -> Error(err)
-      }
-    }
   }
 }
