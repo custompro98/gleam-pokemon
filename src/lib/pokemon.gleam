@@ -35,7 +35,7 @@ pub fn with_move(
   }
 }
 
-pub fn get_name(pokemon: Pokemon) -> String {
+pub fn name(pokemon: Pokemon) -> String {
   pokemon.name
 }
 

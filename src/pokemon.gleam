@@ -23,7 +23,7 @@ pub fn main() -> Nil {
     |> result.try(battle.start)
     |> result.map(fn(b) {
       case b.winner {
-        Some(winner) -> Ok("Winner is " <> pokemon.get_name(winner))
+        Some(winner) -> Ok("Winner is " <> pokemon.name(winner))
         None -> Error(NoWinner)
       }
     })
