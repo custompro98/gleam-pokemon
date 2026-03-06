@@ -1,3 +1,4 @@
+import lib/pokemon
 import gleam/list
 import gleam/option.{Some}
 import lib/battle
@@ -98,7 +99,7 @@ pub fn battler_resolver(
   condition: BattlerCondition,
 ) -> Result(Bool, ConditionError) {
   case condition {
-    HasElement(element) -> Ok(list.contains(battler.pokemon.elements, element))
+    HasElement(element) -> Ok(pokemon.has_element(battler.pokemon, element))
     IsParalyzed -> Ok(battler.status == Some(battle.Paralyzed))
   }
 }

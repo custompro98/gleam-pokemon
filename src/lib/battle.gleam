@@ -58,11 +58,8 @@ pub fn with_participant(
   }
 }
 
-pub fn with_seed(
-  battle: Battle,
-  seed: random.Seed,
-) -> Result(Battle, BattleError) {
-  Ok(Battle(..battle, seed:))
+pub fn with_seed(battle: Battle, seed: random.Seed) -> Battle {
+  Battle(..battle, seed:)
 }
 
 pub fn start(battle: Battle) -> Result(Battle, BattleError) {

@@ -3,8 +3,8 @@ import gleam/io
 import gleam/option.{None, Some}
 import gleam/result
 import lib/battle
-import lib/element
-import lib/move
+import lib/movedex
+import lib/pokedex
 import lib/pokemon
 import prng/random
 
@@ -18,12 +18,12 @@ pub fn main() -> Nil {
   let _ =
     battle.new()
     |> battle.with_seed(random.new_seed(seed))
-    |> result.try(fn(b) { battle.with_participant(b, squirtle()) })
+    |> fn(b) { battle.with_participant(b, squirtle()) }
     |> result.try(fn(b) { battle.with_participant(b, charmander()) })
     |> result.try(battle.start)
     |> result.map(fn(b) {
       case b.winner {
-        Some(winner) -> Ok("Winner is " <> winner.name)
+        Some(winner) -> Ok("Winner is " <> pokemon.get_name(winner))
         None -> Error(NoWinner)
       }
     })
@@ -32,30 +32,18 @@ pub fn main() -> Nil {
   Nil
 }
 
-fn pound() -> move.Move {
-  move.new("Pound")
-  |> move.with_element(element.Normal)
-}
-
 fn squirtle() -> pokemon.Pokemon {
   let assert Ok(squirtle) =
-    pokemon.new("Squirtle")
-    |> pokemon.with_element(element.Water)
-    |> result.try(fn(p) { pokemon.with_move(p, pound()) })
+    pokedex.squirtle()
+    |> pokemon.with_move(movedex.pound())
 
   squirtle
 }
 
-fn scratch() -> move.Move {
-  move.new("Scratch")
-  |> move.with_element(element.Normal)
-}
-
 fn charmander() -> pokemon.Pokemon {
   let assert Ok(charmander) =
-    pokemon.new("Charmander")
-    |> pokemon.with_element(element.Water)
-    |> result.try(fn(p) { pokemon.with_move(p, scratch()) })
+    pokedex.charmander()
+    |> pokemon.with_move(movedex.scratch())
 
   charmander
 }
