@@ -1,5 +1,6 @@
 import gleam/list
 import lib/battle.{type Battle, Battle}
+import lib/target
 import prng/random
 
 pub type WeightedNumber {
@@ -13,6 +14,7 @@ pub type Number {
   Quotient(dividend: Number, divisor: Number)
   Between(min: Float, max: Float)
   Weighted(List(WeightedNumber))
+  MaxHP(target.Target)
 }
 
 pub fn calculate_number(number: Number, battle: Battle) -> #(Float, Battle) {
@@ -61,6 +63,18 @@ pub fn calculate_number(number: Number, battle: Battle) -> #(Float, Battle) {
           #(choice, Battle(..battle, seed: new_seed))
         }
         _ -> panic as "Weighted numbers must have at least one weight"
+      }
+    }
+    MaxHP(target) -> {
+      case target.get(battle, target) {
+        Ok(battler) -> {
+        todo
+        }
+        Error(err) ->
+          case err {
+            target.BattleNotStarted ->
+              panic as "MaxHP must be used with a target"
+          }
       }
     }
   }

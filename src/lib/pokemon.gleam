@@ -7,12 +7,43 @@ pub type PokemonError {
   MoveLimitReached
 }
 
+pub type Stats {
+  BaseStats(
+    hp: Float,
+    attack: Float,
+    defense: Float,
+    special_attack: Float,
+    special_defense: Float,
+    speed: Float,
+  )
+  CurrentStats(
+    hp: Float,
+    attack: Float,
+    defense: Float,
+    special_attack: Float,
+    special_defense: Float,
+    speed: Float,
+  )
+}
+
 pub opaque type Pokemon {
-  Pokemon(name: String, elements: List(element.Element), moves: List(move.Move))
+  Pokemon(
+    name: String,
+    elements: List(element.Element),
+    moves: List(move.Move),
+    base_stats: Stats,
+    stats: Stats,
+  )
 }
 
 pub fn new(name) -> Pokemon {
-  Pokemon(name:, elements: [], moves: [])
+  Pokemon(
+    name:,
+    elements: [],
+    moves: [],
+    base_stats: BaseStats(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    stats: CurrentStats(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+  )
 }
 
 pub fn with_element(
@@ -32,6 +63,13 @@ pub fn with_move(
   case list.length(pokemon.moves) {
     4 -> Error(MoveLimitReached)
     _ -> Ok(Pokemon(..pokemon, moves: [move, ..pokemon.moves]))
+  }
+}
+
+pub fn with_stats(pokemon: Pokemon, stats: Stats) -> Pokemon {
+  case stats {
+    BaseStats(_, _, _, _, _, _) -> Pokemon(..pokemon, base_stats: stats)
+    CurrentStats(_, _, _, _, _, _) -> Pokemon(..pokemon, stats: stats)
   }
 }
 

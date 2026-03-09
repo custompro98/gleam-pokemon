@@ -94,6 +94,7 @@ fn perform_turn(turn: Turn, battle: Battle) -> Result(Battle, BattleError) {
           )
         }
         False -> {
+          // Ask for input to make turns dynamic.
           let turn = new_turn(attacker: turn.defender, defender: turn.attacker)
           let battle = Battle(..battle, turns: [turn, ..battle.turns])
           perform_turn(turn, battle)
